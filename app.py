@@ -2,6 +2,31 @@ import streamlit as st
 
 st.set_page_config(page_title="TC Contrast Pro", page_icon="☢️", layout="wide", initial_sidebar_state="expanded")
 
+# ==========================================
+# 🔒 SISTEMA DE SEGURIDAD (BARRERA DE ACCESO)
+# ==========================================
+if 'autenticado' not in st.session_state:
+    st.session_state['autenticado'] = False
+
+if not st.session_state['autenticado']:
+    st.title("🔒 Acceso Restringido")
+    st.markdown("Esta calculadora es de uso privado. Ingrese su clave para continuar.")
+    
+    pin_ingresado = st.text_input("PIN de seguridad:", type="password")
+    
+    if st.button("Ingresar"):
+        # ACÁ PODÉS CAMBIAR EL "1234" POR LA CLAVE QUE QUIERAS
+        if pin_ingresado == "1234":  
+            st.session_state['autenticado'] = True
+            st.rerun()
+        else:
+            st.error("❌ PIN incorrecto. Acceso denegado.")
+            
+    st.stop() # Esto frena la carga del resto de la página si no hay PIN
+# ==========================================
+
+# (A PARTIR DE ACÁ, CARGA LA APP SOLO SI EL PIN ES CORRECTO)
+
 with st.sidebar:
     st.title("⚙️ Ajustes Especiales")
     modo_pediatrico = st.toggle("👶 Activar Modo Pediátrico")
@@ -161,7 +186,15 @@ if modo_pediatrico:
     fases_info = "- **Monofásico:** Adaptar tiempos al ritmo respiratorio del infante."
     kvp_sugerido = "70 - 80 kVp (Radioprotección estricta)"
 else:
-    lbw = (0.32810 * peso) + (0.33929 * altura) - 29.5336 if sexo == "Hombre" else (0.29569 * peso) + (0.41813 * altura) - 43.2933
+    # -- MASA LIBRE DE GRASA (JANMAHASATIAN) --
+    altura_m = altura / 100
+    imc = peso / (altura_m ** 2) if altura_m > 0 else 0
+    
+    if sexo == "Hombre":
+        lbw = (9270 * peso) / (6680 + (216 * imc))
+    else:
+        lbw = (9270 * peso) / (8780 + (244 * imc))
+        
     lbw = max(lbw, 35.0) 
     lbw_texto = f"{lbw:.1f} kg"
     volumen_final = min(((lbw * mg_kg_lbw) * factor_volumen) / concentracion, 130)
